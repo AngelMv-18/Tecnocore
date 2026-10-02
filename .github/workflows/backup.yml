@@ -1,0 +1,33 @@
+name: Respaldar Base de Datos MySQL (Railway)
+
+on:
+  schedule:
+    # Se ejecuta automáticamente todos los días a la medianoche UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Permite ejecutar el respaldo manualmente cuando quieras
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+
+      - name: Instalar Cliente MySQL
+        run: sudo apt-get update && sudo apt-get install -y mysql-client
+
+      - name: Generar Respaldo (.sql)
+        run: |
+          mkdir -p backups
+          DATE=$(date +'%Y-%m-%d_%H-%M-%S')
+          mysqldump -h ${{ secrets.DB_HOST }} -P ${{ secrets.DB_PORT }} -u ${{ secrets.DB_USER }} -p"${{ secrets.DB_PASSWORD }}" ${{ secrets.DB_NAME }} > backups/db_backup_$DATE.sql
+
+      - name: Guardar cambios en el repositorio
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add backups/
+          git commit -m "Automated database backup: $(date +'%Y-%m-%d %H:%M:%S')" || exit 0
+          git push
+          
