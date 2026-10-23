@@ -42,18 +42,22 @@ let openModals = 0;
 
 export function Modal({ title, onClose, children, footer, size = "", sheet = true, labelledBy }) {
   const ref = useRef(null);
+  // `onClose` suele cambiar en cada render del padre; si fuera dependencia del
+  // efecto, el foco volvería al diálogo en cada letra tecleada y cerraría el teclado.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     openModals += 1;
     document.body.classList.add("modal-open");
-    const onKey = (e) => e.key === "Escape" && onClose?.();
+    const onKey = (e) => e.key === "Escape" && closeRef.current?.();
     window.addEventListener("keydown", onKey);
-    ref.current?.focus();
+    if (!ref.current?.contains(document.activeElement)) ref.current?.focus();
     return () => {
       openModals -= 1;
       if (openModals === 0) document.body.classList.remove("modal-open");
       window.removeEventListener("keydown", onKey);
     };
-  }, [onClose]);
+  }, []);
 
   return (
     <div className={`modal-backdrop ${sheet ? "sheet" : ""}`} onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
