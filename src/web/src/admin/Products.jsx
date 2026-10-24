@@ -141,7 +141,7 @@ export function Products({ api, store }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("todos");
 
-  const products = data?.products ?? [];
+  const products = useMemo(() => data?.products ?? [], [data]);
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter((p) => {

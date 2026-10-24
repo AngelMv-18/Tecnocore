@@ -1,20 +1,16 @@
 /**
- * Compila las cuatro páginas a /dist, listas para subir a GitHub Pages.
+ * Compila las cuatro páginas en la raíz del repositorio, que es lo que publica GitHub Pages.
  *
- *   node web/build.mjs                       → dist/ con config.js de producción
- *   API_URL=http://localhost:8787 node web/build.mjs   → apunta al servidor local
+ *   npm run build                                              → raíz del repo, con config.js de producción
+ *   OUT_DIR=dist API_URL=http://localhost:8787 npm run build   → carpeta aparte apuntando al servidor local
  */
-import { createRequire } from "node:module";
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import * as esbuild from "esbuild";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const require = createRequire(import.meta.url);
-const TOOLS = process.env.NODE_TOOLS || "/opt/npm-tools/node_modules";
-const esbuild = require(join(TOOLS, "esbuild"));
-
 const root = dirname(fileURLToPath(import.meta.url));
-const out = join(root, "..", "dist");
+const out = process.env.OUT_DIR ? resolve(process.env.OUT_DIR) : join(root, "..", "..");
 
 const PAGES = {
   index: { entry: "cliente/main.jsx", title: "Tecnocore · Componentes para PC gaming en Honduras", description: "Procesadores, tarjetas de video, memorias y más. Pedí por WhatsApp con envío a domicilio." },
@@ -52,8 +48,9 @@ function html(name, page) {
 `;
 }
 
-rmSync(out, { recursive: true, force: true });
+// Los chunks cambian de nombre en cada compilación: se borran los anteriores.
 mkdirSync(join(out, "assets"), { recursive: true });
+for (const f of readdirSync(join(out, "assets"))) if (f.endsWith(".js")) rmSync(join(out, "assets", f));
 
 await esbuild.build({
   entryPoints: Object.fromEntries(Object.entries(PAGES).map(([name, p]) => [name, join(root, "src", p.entry)])),
@@ -65,7 +62,6 @@ await esbuild.build({
   target: ["es2020", "chrome90", "safari15", "firefox90"],
   jsx: "automatic",
   chunkNames: "chunk-[hash]",
-  nodePaths: [TOOLS],
   define: { "process.env.NODE_ENV": '"production"' },
   legalComments: "none",
   logLevel: "warning",

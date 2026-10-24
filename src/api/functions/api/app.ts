@@ -99,7 +99,9 @@ export function createApp(db: Db) {
       if (route.roles && !user) return errorResponse(401, "Tu sesión expiró. Volvé a iniciar sesión");
       if (route.roles && !route.roles.includes(user!.role)) return errorResponse(403, "No tenés permiso para esto");
 
-      const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || clientIp || "desconocida";
+      // En Supabase la IP real llega de Cloudflare; X-Forwarded-For lo puede inventar el cliente.
+      const ip = req.headers.get("cf-connecting-ip")?.trim() ||
+        (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || clientIp || "desconocida";
       const ctx: Ctx = { db, req, url, params, ip, user: user!, body: bodyReader(req) };
       return json((await route.handler(ctx)) ?? { ok: true });
     } catch (err) {
