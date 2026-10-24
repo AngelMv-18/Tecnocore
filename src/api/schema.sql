@@ -148,3 +148,12 @@ BEGIN
   END IF;
 END $$;
 REVOKE ALL ON SCHEMA tc FROM PUBLIC;
+
+-- RLS sin políticas como segunda barrera: solo el dueño de las tablas (la API) las usa.
+DO $$
+DECLARE t text;
+BEGIN
+  FOR t IN SELECT tablename FROM pg_tables WHERE schemaname = 'tc' LOOP
+    EXECUTE format('ALTER TABLE tc.%I ENABLE ROW LEVEL SECURITY', t);
+  END LOOP;
+END $$;

@@ -112,6 +112,19 @@ describe("seguridad", () => {
     expect(last).toBe(429);
   });
 
+  test("cambiar X-Forwarded-For no salta el límite cuando llega la IP de Cloudflare", async () => {
+    let last = 0;
+    for (let i = 0; i < 12; i++) {
+      const res = await handle(new Request("http://local/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "cf-connecting-ip": "10.7.7.7", "x-forwarded-for": `10.8.0.${i}` },
+        body: JSON.stringify({ portal: "admin", username: "x", password: "y" }),
+      }));
+      last = res.status;
+    }
+    expect(last).toBe(429);
+  });
+
   test("no existe ruta de almacenamiento genérico (hueco de la v1)", async () => {
     expect((await call("GET", "/storage/catalogo-config")).status).toBe(404);
   });
